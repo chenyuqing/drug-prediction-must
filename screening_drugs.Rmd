@@ -1,0 +1,67 @@
+---
+title: "screening drugs"
+output: html_document
+---
+
+## set the path
+```{r}
+setwd("D:/git-ware/drug-prediction-must")
+getwd()
+```
+
+## Load drugs data
+```{r}
+VariantTable <- read.csv(file.path("Data", "VariantTableByGene.csv"), row.names = 1)
+
+## Load drug/agent GI50 data
+DrugDat <- read.csv(file.path("Data", "AOD_IOA_GI50.csv"))
+dim(DrugDat)
+# [1] 10849     8
+
+# find overlap in cell lines
+setdiff(rownames(VariantTable), unique(DrugDat$CELL))
+setdiff(unique(DrugDat$CELL), rownames(VariantTable))
+
+# fix names in exome data
+rownames(VariantTable) <- sub("A549_ATCC", "A549/ATCC", rownames(VariantTable))
+rownames(VariantTable) <- sub("COLO-205", "COLO 205", rownames(VariantTable))
+rownames(VariantTable) <- sub("DU145", "DU-145", rownames(VariantTable))
+rownames(VariantTable) <- sub("HCC2998", "HCC-2998", rownames(VariantTable))
+rownames(VariantTable) <- sub("HL-60", "HL-60(TB)", rownames(VariantTable))
+rownames(VariantTable) <- sub("Hs_578T", "HS 578T", rownames(VariantTable))
+rownames(VariantTable) <- sub("IGR-OV1", "IGROV1", rownames(VariantTable))
+rownames(VariantTable) <- sub("K562", "K-562", rownames(VariantTable))
+rownames(VariantTable) <- sub("LOX_IMVI", "LOX IMVI", rownames(VariantTable))
+rownames(VariantTable) <- sub("MDA-MB-231", "MDA-MB-231/ATCC", rownames(VariantTable))
+rownames(VariantTable) <- sub("NCI-ADR-RES", "NCI/ADR-RES", rownames(VariantTable))
+rownames(VariantTable) <- sub("RXF-393", "RXF 393", rownames(VariantTable))
+
+# restrict drug data to overlap with exome data
+DrugDat <- DrugDat[which(DrugDat$CELL %in% rownames(VariantTable)), ]
+dim(DrugDat)
+# [1] 10437     8
+str(DrugDat)
+
+GI50Wide <- reshape(DrugDat[, c("NSC", "CELL", "NLOGGI50")], direction = "wide", timevar = "NSC", idvar = "CELL")
+colnames(GI50Wide) <- sub("NLOGGI50.", "", colnames(GI50Wide))
+
+# use cell line name as rowname
+rownames(GI50Wide) <- GI50Wide[, 1]
+# remove cell line name, and line up cell lines with Variant Table
+GI50Wide <- GI50Wide[rownames(VariantTable), -1]
+dim(GI50Wide)
+# [1]  61 181
+
+```
+
+## Screening the drugs
+```{r}
+library(xlsx)
+drugs_30 <- read.xlsx(file.path("Data", "30_drugs.xlsx"), sheetName="Sheet1")
+GI50Wide1 <- GI50Wide[,which(colnames(GI50Wide) %in% drugs_30$NSC)]
+
+# save to a csv file
+write.csv(GI50Wide1, "./prepocessed_data/30drugs.csv")
+write.csv(VariantTable, "./prepocessed_data/gene_mutations.csv")
+```
+

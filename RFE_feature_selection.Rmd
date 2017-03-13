@@ -1,0 +1,37 @@
+---
+title: "RFE-feature-selection"
+output: html_document
+---
+
+## set the path
+```{r}
+setwd("D:/git-ware/drug-prediction-must")
+getwd()
+```
+
+## Load the data
+```{r}
+nci60GeneMut <- read.csv(file.path("prepocessed_data", "gene_mutations.csv"), row.names = 1)
+IC50 <- read.csv(file.path("prepocessed_data", "30drugs.csv"), row.names = 1)
+colnames(IC50) <- sub("X", "NSC", colnames(IC50))
+```
+
+## Feature selection: rfe: recursive feature elimination
+```{r}
+Y = IC50[,1]
+X <- nci60GeneMut[!is.na(Y), ]
+Y <- Y[!is.na(Y)]
+str(Y)
+library(caret)
+require(glmnet)
+set.seed(2016)
+# funciton : random forest
+control <- rfeControl(functions = rfFuncs, method = "cv", number = 10, verbose = TRUE)
+ptm <- proc.time()
+results <- rfe(X, Y, sizes = c(1:55), rfeControl = control)
+proc.time() - ptm
+print(results)
+str(predictors(results))
+plot(results, type=c('g','o'))
+```
+
